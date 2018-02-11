@@ -1,3 +1,6 @@
-spy_name = "Mr.Akhil"
-spy_age = "23"
-spy_rating = "4.0"
+spy = {
+    "name" : "Mr.Akhil",
+    "age" : "23",
+    "rating" : "4.0"
+
+}
