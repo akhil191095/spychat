@@ -1,14 +1,17 @@
-from spy_details import spy,friends
+from spy_details import spy,friends,ChatMessage,friend
 from steganography.steganography import Steganography
 from datetime import datetime
-from spy_details import Spy, ChatMessage,friend
-import csv
 
+import csv
+from termcolor import *
   #steganography is a lib.
   #datetie is a lib
   #csv (comma seperated value)
+
 print "Hello"
+
        #welcome message
+chat = []
 
 def load_friends():
     with open("friens.csv","rb") as friends_data:
@@ -20,9 +23,47 @@ def load_friends():
             rating = row[2]
             friends.append(spy)
 
-load_friends()
 
-         #function for adding friends in csv
+def show_friends():
+    if len(friends) == 0:
+        print "You have no friends !"
+        return 0
+
+    for friend in friends:
+
+        # Printing details of friend
+
+        friend_details =  friend.name + " of age " + str(friend.age) + " with rating of " + str(friend.rating) + " is online! "
+        blue_friend_details = (friend_details )
+        print blue_friend_details
+
+ # To print details
+
+
+def load_chats():
+    with open("chats.csv","rb") as chats_data:
+        reader = list(csv.reader(chats_data))
+
+        for row in reader[1:]:
+            if row:
+                name_of_sender = row[0]
+                message_sent_to = row[1]
+                message = row[2]
+                sent_by_me = row[4]
+                new_chat = ChatMessage(name_of_sender, message_sent_to, message , sent_by_me)
+                chat.append(new_chat)
+
+            print "\nShowing details of existing friend"
+
+
+# loading existing friend details
+load_friends()
+# showing existing friend details
+show_friends()
+# loading chat history between user and friends
+load_chats()
+
+
 OLD_STATUS = ["Available","007","Can't talk spychat only","sleeping"]
 
 #all the old status that we can reuse
@@ -87,33 +128,75 @@ def select_frnd():
     return user_index
 
 def send_message():
-    selected_frnd = select_frnd()
-    message = raw_input("What is your secret message? ")
+    selected_friend = select_frnd()
+
+
     original_image = raw_input("What is the name of your image? ")
     output_path = "output.jpg"
+    message = raw_input("What is your secret message? ")
+    if len(message) == 0:
+        print "please enter something "
+    elif message == "sos" or "save me " or "help me" or "save me please":
+        print "hold on"
+    elif message == "False" or "hack" or "#" or "@" or "?":
+        print "spychat aint free"
+        #no such symbols should be accepted
+    else:
+        print"your message is accepted" \
+
     Steganography.encode( original_image , output_path , message )
-    new_chat = {
-        "message": message,
-        "time": datetime.now(),
-        "sent_by_me": True
-    }
-    friends[selected_frnd].chat.append(new_chat)
+    message_sent_to = friends[selected_friend].name
+
     print "Message Encrypted"
+
+    new_chat =  ChatMessage(spy.name, message_sent_to , message , True)
+    friends[selected_friend].chat.append(new_chat)
+
+    with open("chats.csv", "a") as chat1data:
+        writer = csv.writer(chat1data)
+        writer.writerow([spy.name, message_sent_to, new_chat.message, new_chat.time, new_chat.sent_by_me])
+
     #sned encrypted messages from function-send_message
 
 def read_message():
     chosen_frnd = select_frnd()
     output_path = raw_input("Name of the image to be decoded ")
     secret_text = Steganography.decode(output_path)
-    new_chat = {
-        "message": secret_text,
-        "time": datetime.now(),
-        "sent_by_me": False
-    }
+    new_chat = ChatMessage(spy.name, friends[chosen_frnd].name, secret_text, False)
     friends[chosen_frnd].chat.append(new_chat)
     print "Your secret message is " + secret_text
 
 #reading encrypted messages by decoding them through steganography
+
+def read_chat_history():
+    friend_choice = select_frnd()
+
+    print '\n'
+
+    for chats in chat:
+        if chats.sent_by_me and chats.message_sent_to == friends[friend_choice].name:
+            # Date and time is printed in blue
+            print (colored(str(chats.time.strftime("%d %B %Y %A %H:%M")) + ",", "blue")),
+            # The message is printed in red
+            print (colored("You : ", "red")),
+            # Default black colour for text
+            print str(chats.message)
+            print '\n'
+            break
+
+        # Message sent by another spy
+        elif chats.sent_by_me is False:
+            # Date and time is printed in blue
+            print (colored(str(chats.time.strftime("%d %B %Y %A %H:%M")) + ",", "blue")),
+            # The message is printed in red
+            print (colored(str(friends[friend_choice].name) + " : ", "red")),
+            # Default black colour for text
+            print str(chats.message)
+            break
+
+    else:
+        print (colored("You don't have any chats with this friend", "yellow", attrs=["dark", "bold"]))
+        print '\n'
 
 
 
@@ -121,7 +204,7 @@ def start_chat(spy_name,spy_age,spy_rating):
     current_status = None
     show_menu = True
     while show_menu:
-        menu_choice = input("What do you want to do? \n 1.Add Status \n 2.Add Frriend \n 3.Send a message \n 4.Read a Message \n 0.Exit \n")     # menu to be selected
+        menu_choice = input("What do you want to do? \n 1.Add Status \n 2.Add Frriend \n 3.Send a message \n 4.Read a Message \n 5.Read chat history \n 0.Exit \n")     # menu to be selected
         if menu_choice == 1:
           current_status = add_status(current_status)
           print "Your new status is updated to "+ current_status
@@ -132,6 +215,8 @@ def start_chat(spy_name,spy_age,spy_rating):
             send_message()
         elif menu_choice == 4:
             read_message()
+        elif menu_choice == 5:
+            read_chat_history()
         elif menu_choice == 0:
             show_menu = False
         else:
@@ -141,8 +226,8 @@ def start_chat(spy_name,spy_age,spy_rating):
 question = raw_input ("Are you a new user? YES or NO:")
 
 if question.upper() == "NO":
-    username = raw_input("Please enter your username & password")
-    password = raw_input("please enter the password")
+    username = raw_input("Please enter your username ")
+    password = raw_input("please enter the password ")
     if username.upper() == "AKHIL" and password.upper()== "AKHIL":
         print "welcome"
 
